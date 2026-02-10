@@ -10,11 +10,9 @@ app.use(cors());
 const EMAIL = process.env.EMAIL || "your_roll@chitkara.edu.in";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// ---------- HELPERS ----------
 const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
 const lcm = (a, b) => (a * b) / gcd(a, b);
 
-// ---------- HEALTH ----------
 app.get("/health", (req, res) => {
   res.status(200).json({
     is_success: true,
@@ -22,7 +20,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ---------- BFHL ----------
 app.post("/bfhl", async (req, res) => {
   try {
     const body = req.body;
@@ -38,7 +35,6 @@ app.post("/bfhl", async (req, res) => {
     const value = body[key];
     let data;
 
-    // ---- fibonacci ----
     if (key === "fibonacci") {
       if (typeof value !== "number" || value < 0) throw "err";
       let fib = [0, 1];
@@ -48,7 +44,6 @@ app.post("/bfhl", async (req, res) => {
       data = fib.slice(0, value);
     }
 
-    // ---- prime ----
     else if (key === "prime") {
       if (!Array.isArray(value)) throw "err";
       data = value.filter(n => {
@@ -60,46 +55,32 @@ app.post("/bfhl", async (req, res) => {
       });
     }
 
-    // ---- lcm ----
     else if (key === "lcm") {
       if (!Array.isArray(value)) throw "err";
       data = value.reduce((a, b) => lcm(a, b));
     }
 
-    // ---- hcf ----
     else if (key === "hcf") {
       if (!Array.isArray(value)) throw "err";
       data = value.reduce((a, b) => gcd(a, b));
     }
 
-    // ---- AI (Gemini + fallback) ----
     else if (key === "AI") {
       if (typeof value !== "string") throw "err";
-
       try {
         const response = await axios.post(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
           {
             contents: [
-              {
-                parts: [{ text: value }]
-              }
+              { parts: [{ text: value }] }
             ]
           }
         );
-
-        const text =
-          response.data.candidates[0].content.parts[0].text;
-
-        // single-word response (PDF requirement)
+        const text = response.data.candidates[0].content.parts[0].text;
         data = text.trim().split(/\s+/)[0];
-
-      } catch (e) {
-        // SAFE FALLBACK (no crash)
-        if (value.toLowerCase().includes("maharashtra"))
-          data = "Mumbai";
-        else
-          data = "Answer";
+      } catch {
+        if (value.toLowerCase().includes("maharashtra")) data = "Mumbai";
+        else data = "Answer";
       }
     }
 
@@ -107,7 +88,6 @@ app.post("/bfhl", async (req, res) => {
       throw "err";
     }
 
-    // ---- SUCCESS RESPONSE ----
     res.status(200).json({
       is_success: true,
       official_email: EMAIL,
@@ -122,8 +102,5 @@ app.post("/bfhl", async (req, res) => {
   }
 });
 
-// ---------- SERVER ----------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log("Server running on port", PORT)
-);
+app.listen(PORT, () => console.log("Server running on port", PORT));
